@@ -1,0 +1,129 @@
+// === Pin Definition ===
+
+const int pelontarPWM = 8;
+const int motorDirA = 31;
+const int motorDirB = 33;
+
+// const int sudut_RPWM = 19;
+// const int sudut_LPWM = 25;
+
+// === STATUS VARIABEL ===
+bool pelontarAktif = false;
+bool LastRoundState = false;
+bool LastSquareState = false;
+bool sedangTembak = false;
+
+
+void shootingSetup() {
+  pinMode(pelontarPWM, OUTPUT);
+  // pinMode(sudut_RPWM, OUTPUT);
+  // pinMode(sudut_LPWM, OUTPUT);
+
+  //===========PIN ENABLE=============//
+  pinMode(31, OUTPUT);  // EN_L 
+  pinMode(33, OUTPUT);  // EN_R
+
+  Serial.println("Sistem shooting siap.");
+}
+
+// === PELONTAR ===
+void aktifkanPelontar() {
+  analogWrite(pelontarPWM, 125);  //CCW
+  digitalWrite(31, HIGH);
+  digitalWrite(33, LOW);
+  pelontarAktif = true;
+  Serial.println("Pelontar aktif.");
+}
+
+void matikanPelontar() {
+  analogWrite(pelontarPWM, 0);
+  digitalWrite(31, LOW);
+  digitalWrite(33, LOW);
+  pelontarAktif = false;
+  Serial.println("Pelontar mati.");
+}
+
+// === LOOP TASK ===
+void shootingTask() {
+  // bool currentButtonState = recvData.stat[10];  // Tombol ROUND
+  if(!recvData.stat[10] && LastRoundState){
+    aktifkanPelontar();
+  }
+  LastRoundState = recvData.stat[10];
+  if(!recvData.stat[9] && LastSquareState){
+    matikanPelontar();
+  }
+  LastSquareState = recvData.stat[9];
+}
+
+
+  //===============================================================================//
+  // Deteksi rising edge: tombol baru ditekan
+  // if (currentButtonState && !lastRoundState) {
+  //   pelontarAktif = !pelontarAktif;  // Toggle status
+
+  //   if (pelontarAktif) {
+  //     aktifkanPelontar();   
+  //   } else {
+  //     matikanPelontar();    // Fungsi kamu untuk matikan motor pelontar
+  //   }
+  // }
+
+
+  // Matikan semua motor
+  //matikanPelontar();
+  //hentikanMotorSudut();
+  
+
+
+
+// void feederTask() {
+//   // Tombol TRIANGLE ditekan dan belum sedang menembak
+//   if (recvData.stat[3] == true && !sedangTembak) {
+//     tembakBola();  // Aktifkan feeder dan mulai timer
+//   }
+
+  // // Cek apakah sudah waktunya mematikan feeder
+  // if (sedangTembak && millis() - feederStartTime >= feederDuration) {
+  //   // digitalWrite(relay4, LOW);
+  //   sedangTembak = false;
+  //   Serial.println("Feeder OFF");
+  // }
+// }
+
+// === SUDUT ===
+// void naikkanSudut() {
+//   analogWrite(sudut_RPWM, 200);
+//   analogWrite(sudut_LPWM, 0);
+//   Serial.println("Sudut naik.");
+// }
+
+// void turunkanSudut() {
+//   analogWrite(sudut_RPWM, 0);
+//   analogWrite(sudut_LPWM, 200);
+//   Serial.println("Sudut turun.");
+// }
+
+// void hentikanMotorSudut() {
+//   analogWrite(sudut_RPWM, 0);
+//   analogWrite(sudut_LPWM, 0);
+// }
+
+  // Kontrol sudut NAIK tombol UP (index 7)
+  // Kontrol sudut TURUN tombol DOWN (index 8)
+  // if (recvData.stat[4] == true) {
+  //   naikkanSudut();
+  // } else if (recvData.stat[6] == true) {
+  //   turunkanSudut();
+  // } else {
+  //   hentikanMotorSudut();
+  // }
+
+  // === FEEDER ===
+// void tembakBola() {
+//   // digitalWrite(relay4, !digitalRead(relay4));
+//   // feederStartTime = millis();
+//   sedangTembak = true;
+//   Serial.println("Tembak bola!");
+// }
+
