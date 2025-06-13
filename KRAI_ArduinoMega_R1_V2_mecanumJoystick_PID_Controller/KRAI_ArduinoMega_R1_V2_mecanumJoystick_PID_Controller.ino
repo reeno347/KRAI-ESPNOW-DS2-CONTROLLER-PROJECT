@@ -12,19 +12,21 @@
 // #define DEBUG
 
 #ifdef DEBUG
-  #define DEBUG_PRINT(...) Serial.print(__VA_ARGS__)
-  #define DEBUG_PRINTLN(...) Serial.println(__VA_ARGS__)
-  #define DEBUG_BEGIN(baud) Serial.begin(baud)
+#define DEBUG_PRINT(...) Serial.print(__VA_ARGS__)
+#define DEBUG_PRINTLN(...) Serial.println(__VA_ARGS__)
+#define DEBUG_BEGIN(baud) Serial.begin(baud)
 #else
-  #define DEBUG_PRINT(...)    
-  #define DEBUG_PRINTLN(...)  
-  #define DEBUG_BEGIN(baud)   
+#define DEBUG_PRINT(...)
+#define DEBUG_PRINTLN(...)
+#define DEBUG_BEGIN(baud)
 #endif
 
 #include "dataReadFunc.h"
 #include "mecanumControl.h"
 #include "shooting.h"
 
+unsigned long relay5StartTime = 0;
+bool relay5Active = false;
 
 bool R2lastState = true;
 bool L2lastState = true;
@@ -35,6 +37,7 @@ uint8_t relay1 = 46;
 uint8_t relay2 = 48;
 uint8_t relay3 = 50;
 uint8_t relay4 = 52;
+uint8_t relay5 = 34;
 
 void setup() {
   pinMode(LED_BUILTIN, OUTPUT);
@@ -46,62 +49,87 @@ void setup() {
   digitalWrite(relay3, LOW);
   pinMode(relay4, OUTPUT);
   digitalWrite(relay4, LOW);
+  pinMode(relay5, OUTPUT);
+  digitalWrite(relay5, LOW);
   recvStart();
   PIDSetup();
   mecanumSetup();
   shootingSetup();
-  
 }
 
-void loop(){
+void loop() {
   checkData();
   delay(30);
   calcMecanum();
   relayCheck();
   shootingTask();
-  // feederTask();
 }
 
-void relayCheck(){
-    if (!recvData.stat[12] && R2lastState) { // R2
-    digitalWrite(relay2, !digitalRead(relay2)); // Toggle Relay 2
-    delay(100);
+void relayCheck() {
+  unsigned long currentMillis = millis();
+  if (!recvData.stat[12] && R2lastState) {  // R2
+    digitalWrite(relay2, !digitalRead(relay2));
+    delay(20);
+
     //Mengaktifkan Relay1 Sesaat
     digitalWrite(relay1, LOW);
     delay(100);
     digitalWrite(relay1, HIGH);
-    } 
-    else if (!recvData.stat[12] && R2lastState) { // R2
-    digitalWrite(relay2, !digitalRead(relay2)); // Toggle Relay 2
-
-    }
-
+  }
   R2lastState = recvData.stat[12];
 
   if (!recvData.stat[2] && L2lastState) {  //L2
     digitalWrite(relay2, !digitalRead(relay2));
     digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
   }
-  L2lastState = recvData.stat[2]; 
-  
-  if (!recvData.stat[13] && R1lastState) { //R1
-    digitalWrite(relay3, !digitalRead(relay3)); 
+  L2lastState = recvData.stat[2];
+
+  if (!recvData.stat[13] && R1lastState) {  //R1
+    digitalWrite(relay3, !digitalRead(relay3));
     digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
   }
   R1lastState = recvData.stat[13];
 
-  if (!recvData.stat[3] && L1lastState) {  //L1
+  // Cek L1
+  if (!recvData.stat[3] && L1lastState) {  // L1 berubah
     digitalWrite(relay4, !digitalRead(relay4));
-    digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
 
+    // Aktifkan relay5 sesaat (HIGH lalu LOW)
+    digitalWrite(relay5, HIGH);
+    relay5Active = true;
+    relay5StartTime = currentMillis;
+  } else if (!recvData.stat[3] && L1lastState) {  // L1 berubah
+    digitalWrite(relay4, !digitalRead(relay4));
+
+    // Aktifkan relay5 sesaat (HIGH lalu LOW)
+    digitalWrite(relay5, HIGH);
+    relay5Active = true;
+    relay5StartTime = currentMillis;
   }
-  L1lastState = recvData.stat[3]; 
+  L1lastState = recvData.stat[3];
+
+  // Matikan relay5 setelah 2000 ms jika sedang aktif
+  if (relay5Active && (currentMillis - relay5StartTime >= 1000)) {
+    digitalWrite(relay5, LOW);
+    relay5Active = false;
+  }
 }
 
 
-  // if (!recvData.stat[12] && R2lastState) { //R2
-  //   digitalWrite(relay2, !digitalRead(relay2));
-  //   delay(100);
-  //   digitalWrite(relay1, !digitalRead(relay1)); 
-  //   digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN)); 
-  // }
+
+
+// if (!recvData.stat[3] && L1lastState) {  //L1
+//   digitalWrite(relay4, !digitalRead(relay4));
+//   digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
+
+// }
+// L1lastState = recvData.stat[3];
+
+
+
+// if (!recvData.stat[12] && R2lastState) { //R2
+//   digitalWrite(relay2, !digitalRead(relay2));
+//   delay(100);
+//   digitalWrite(relay1, !digitalRead(relay1));
+//   digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
+// }
